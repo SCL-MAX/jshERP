@@ -44,6 +44,20 @@
 
 压测的原始输出、死锁堆栈、复现步骤见 **[docs/benchmark](docs/benchmark/README.md)**。
 
+### 运行截图
+
+首页（系统完整可用）：
+
+![首页](docs/images/03-home.png)
+
+并发写入的销售出库单 —— 6 张单据的时间戳同为 `15:58:02`，即同一秒内并发落库：
+
+![并发出库单](docs/images/02-concurrent-bills.png)
+
+库存报表（注意：该报表默认不显示零库存商品，测试商品卖完后不在列表中）：
+
+![库存报表](docs/images/01-stock-report.png)
+
 ### 改动文件
 
 ```
