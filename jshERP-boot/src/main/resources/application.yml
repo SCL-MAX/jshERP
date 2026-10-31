@@ -22,6 +22,14 @@ spring:
     host: 127.0.0.1
     port: 6379
     password: 1234abcd
+    timeout: 3000
+    # 默认连接池只有 8 个连接，并发保存单据时容易拿不到连接
+    jedis:
+      pool:
+        max-total: 200
+        max-idle: 50
+        min-idle: 10
+        max-wait: 3000
   servlet:
     multipart:
       # 文件上传限制 (byte)

@@ -15,6 +15,8 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Description
@@ -24,6 +26,8 @@ import java.util.concurrent.TimeUnit;
  */
 @Component
 public class RedisService {
+
+    private static final Logger logger = LoggerFactory.getLogger(RedisService.class);
 
     @Resource
     public RedisTemplate redisTemplate;
@@ -61,7 +65,11 @@ public class RedisService {
                 //redis中存在，拿出来使用
                 obj=redisTemplate.opsForHash().get(token,key);
                 redisTemplate.expire(token, BusinessConstants.MAX_SESSION_IN_SECONDS, TimeUnit.SECONDS);
+            } else {
+                logger.warn("session miss: token[{}] has no key[{}]", token.substring(0, Math.min(8, token.length())), key);
             }
+        } else {
+            logger.warn("session miss: request has no header {}", ACCESS_TOKEN);
         }
         return obj;
     }
