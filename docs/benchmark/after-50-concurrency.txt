@@ -1,0 +1,11 @@
+﻿token = 5dc3719192bc...
+stock before = 10
+single shot  = code=200 msg=
+stock after  = 9
+
+concurrent   = 50
+elapsed      = 0.97 s
+success      = 9
+failed       = 41
+fail msgs    = 商品:测试商品1-1018库存不足 x31 | 商品:测试商品1库存不足 x9 | 抱歉，请不要频繁提交单据 x1
+stock after  = 0
