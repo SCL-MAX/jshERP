@@ -136,8 +136,13 @@ public class LogService {
                 String createTime = Tools.getNow3();
                 Long count = logMapperEx.getCountByIpAndDate(userId, moduleName, clientIp, createTime);
                 if(count > 0) {
-                    //如果某个用户某个IP在同1秒内连续操作两遍，此时需要删除该redis记录，使其退出，防止恶意攻击
-                    redisService.deleteObjectByUserAndIp(userId, clientIp);
+                    //【改造】原逻辑：同一用户同一IP在同一秒内第二次操作就删除其会话，强制下线。
+                    // 问题：正常并发（多线程客户端、快速连续下单）会被误判为恶意攻击，
+                    // 表现为 50 并发下有 49 个请求被踢下线（loginOut / userId 为 null）。
+                    // 而且 deleteObjectByUserAndIp 内部用 keys("*") 全库扫描，本身就是性能隐患。
+                    // 处理：只跳过重复日志写入，不再动会话。
+                    // 真正的重复提交已由 DepotHeadService.checkExistByRedis（按 用户_单号 做 2 秒幂等）拦截。
+                    logger.warn("skip duplicated operation log: user={}, module={}, ip={}", userId, moduleName, clientIp);
                 } else {
                     Log log = new Log();
                     log.setUserId(userId);
