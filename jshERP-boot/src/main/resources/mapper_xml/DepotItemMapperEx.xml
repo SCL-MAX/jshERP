@@ -1149,5 +1149,23 @@
         order by dh.id desc, di.id desc
         limit 0,1
     </select>
+    <!-- 出库：一条 SQL 同时完成「校验 + 扣减 + 加锁」，条件更新保证不会扣成负数 -->
+    <update id="subCurrentStock">
+        update jsh_material_current_stock
+        set current_number = ifnull(current_number, 0) - #{num}
+        where material_id = #{mId}
+          and depot_id = #{dId}
+          and ifnull(delete_flag, '0') != '1'
+          and ifnull(current_number, 0) &gt;= #{num}
+    </update>
+
+    <!-- 入库：原子增加 -->
+    <update id="addCurrentStock">
+        update jsh_material_current_stock
+        set current_number = ifnull(current_number, 0) + #{num}
+        where material_id = #{mId}
+          and depot_id = #{dId}
+          and ifnull(delete_flag, '0') != '1'
+    </update>
 
 </mapper>

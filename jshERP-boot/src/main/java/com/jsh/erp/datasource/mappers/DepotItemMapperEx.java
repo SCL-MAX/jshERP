@@ -260,4 +260,22 @@ public interface DepotItemMapperEx {
             @Param("meId") Long meId,
             @Param("type") String type,
             @Param("subType") String subType);
+
+    /**
+     * 出库：原子扣减当前库存。
+     * 返回 0 表示「库存不足」或「该商品+仓库的库存行不存在」。
+     * 条件 current_number >= num 保证并发下不会扣成负数。
+     */
+    int subCurrentStock(
+            @Param("mId") Long mId,
+            @Param("dId") Long dId,
+            @Param("num") BigDecimal num);
+
+    /**
+     * 入库：原子增加当前库存。返回 0 表示库存行不存在，需要初始化。
+     */
+    int addCurrentStock(
+            @Param("mId") Long mId,
+            @Param("dId") Long dId,
+            @Param("num") BigDecimal num);
 }

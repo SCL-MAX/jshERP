@@ -8,3 +8,7 @@
 
 ## front
 **/*.lock
+# --- local dev (added for secondary development) ---
+runtime/
+*.log
+*.bak

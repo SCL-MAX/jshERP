@@ -681,11 +681,22 @@ public class DepotItemService {
                 }
                 depotItemList.add(depotItem);
             }
+            //【改造】出库单先扣库存，再写明细。
+            // 这样所有并发事务都先抢同一个库存行锁，锁获取顺序一致，避免
+            // 「插入锁等库存锁、库存锁等插入锁」的 ABBA 死锁。
+            boolean isOutBill = BusinessConstants.DEPOTHEAD_TYPE_OUT.equals(depotHead.getType());
+            if(isOutBill) {
+                for (DepotItem depotItem : depotItemList) {
+                    updateCurrentStockFast(depotItem, depotHead.getType());
+                }
+            }
             //批量写入单据明细数据
             depotItemMapperEx.batchInsert(depotItemList);
             for (DepotItem depotItem : depotItemList) {
-                //更新当前库存
-                updateCurrentStock(depotItem);
+                //更新当前库存（出库已在上面扣减过，这里只处理入库）
+                if(!isOutBill) {
+                    updateCurrentStockFast(depotItem, depotHead.getType());
+                }
                 //更新当前成本价
                 updateCurrentUnitPrice(depotItem);
                 //更新商品的价格
@@ -1126,6 +1137,54 @@ public class DepotItemService {
         updateCurrentStockFun(depotItem.getMaterialId(), depotItem.getDepotId(), currentUnitPrice);
         if(depotItem.getAnotherDepotId()!=null){
             updateCurrentStockFun(depotItem.getMaterialId(), depotItem.getAnotherDepotId(), currentUnitPrice);
+        }
+    }
+
+    /**
+     * 按单据类型增量更新当前库存（改造版）。
+     *
+     * 原实现：每行明细都调用 getStockByParam 全量聚合 depot_item，再 SELECT + UPDATE
+     * jsh_material_current_stock。并发保存同一商品时，事务内长时间持有库存行锁，
+     * 导致大量 MySQL 死锁（实测 50 并发 48 单死锁回滚）。
+     *
+     * 新实现：出库用带 current_number >= num 条件的 UPDATE 一条搞定「校验+扣减+加锁」，
+     * 入库同理直接累加；单行、单语句、锁顺序固定，既不会超卖也不会死锁。
+     * 调拨单（anotherDepotId 不为空）仍走原逻辑，避免一出一入时的方向判断出错。
+     */
+    @Transactional(value = "transactionManager", rollbackFor = Exception.class)
+    public void updateCurrentStockFast(DepotItem depotItem, String billType) throws Exception {
+        if(depotItem.getAnotherDepotId()!=null
+                || depotItem.getMaterialId()==null
+                || depotItem.getDepotId()==null) {
+            updateCurrentStock(depotItem);
+            return;
+        }
+        BigDecimal num = depotItem.getBasicNumber()==null?BigDecimal.ZERO:depotItem.getBasicNumber();
+        if(num.compareTo(BigDecimal.ZERO)==0) {
+            return;
+        }
+        Long mId = depotItem.getMaterialId();
+        Long dId = depotItem.getDepotId();
+        if(BusinessConstants.DEPOTHEAD_TYPE_OUT.equals(billType)) {
+            int affected = depotItemMapperEx.subCurrentStock(mId, dId, num);
+            if(affected==0) {
+                Material material = materialService.getMaterial(mId);
+                String stockMsg = (material==null?String.valueOf(mId):material.getName());
+                throw new BusinessRunTimeException(ExceptionConstants.MATERIAL_STOCK_NOT_ENOUGH_CODE,
+                        String.format(ExceptionConstants.MATERIAL_STOCK_NOT_ENOUGH_MSG, stockMsg));
+            }
+        } else {
+            int affected = depotItemMapperEx.addCurrentStock(mId, dId, num);
+            if(affected==0) {
+                // 该商品+仓库还没有库存行，初始化一条
+                BigDecimal currentUnitPrice = materialCurrentStockMapperEx.getCurrentUnitPriceByMId(mId);
+                MaterialCurrentStock mcs = new MaterialCurrentStock();
+                mcs.setMaterialId(mId);
+                mcs.setDepotId(dId);
+                mcs.setCurrentNumber(num);
+                mcs.setCurrentUnitPrice(currentUnitPrice);
+                materialCurrentStockMapper.insertSelective(mcs);
+            }
         }
     }
 

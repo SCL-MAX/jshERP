@@ -1214,7 +1214,8 @@ public class DepotHeadService {
      * @param request
      * @throws Exception
      */
-    @Transactional(value = "transactionManager", rollbackFor = Exception.class)
+    @Transactional(value = "transactionManager", rollbackFor = Exception.class,
+            isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public void addDepotHeadAndDetail(String beanJson, String rows,
                                       HttpServletRequest request) throws Exception {
         /**处理单据主表数据*/
