@@ -1,90 +1,146 @@
-# 项目总述
-* 很多人说管伊佳ERP（原名：华夏ERP，英文名：jshERP）是目前人气领先的国产ERP系统
-* 虽然目前只有进销存+财务+生产的功能，但后面将会推出ERP的全部功能，有兴趣请帮点一下 **Star** 哦
-* **官网地址：http://www.gyjerp.com  商务或技术交流，请联系微信：shenhua861584 或联系QQ：752718920**
-* 官方直播间-**抖音号：57553744996**  快来关注，作者本人在线视频直播，解答部署和使用等问题
-* 对物联网感兴趣的朋友欢迎关注我们的新开源系统：[管伊佳物联](https://gitee.com/jishenghua/gyj-iot)
+# jshERP 二次开发：库存链路并发治理
 
-# 网络版介绍
-* 推荐使用网络版（198元1年）淘宝链接：https://item.taobao.com/item.htm?id=674169489573
-* 平台地址：http://cloud.gyjerp.com 欢迎大家注册租户进行使用
-* 网络版手机端请扫描下方二维码
+基于开源 ERP [jishenghua/jshERP](https://github.com/jishenghua/jshERP)（进销存 + 财务）的二次开发实践。
+原项目说明见 [README.upstream.md](README.upstream.md)。
 
-![输入图片说明](https://cloud.gyjerp.com/static/android-code.png)
-![输入图片说明](https://cloud.gyjerp.com/static/iphone-code.png)
-![输入图片说明](https://cloud.gyjerp.com/static/weixin-code.png)
+本仓库记录的是我在**库存链路**上做的一次并发问题治理：从压测复现，到读源码定位，
+到改造与验证的完整过程。
 
-# 定制和插件
-* 如有ERP私人定制需求，请将需求整理成文档，发给邮箱： **752718920@qq.com** ，我会及时回复哒
-* 如需更多功能，欢迎购买作者小店的插件 https://shop104070207.taobao.com/ 谢谢支持
+---
 
-# 开发初衷
-* 管伊佳ERP立志为中小企业提供开源好用的ERP软件，降低企业的信息化成本
-* 个人开发者也可以使用管伊佳ERP进行二次开发，加快完成开发任务
-* 初学JAVA的小伙伴可以下载源代码来进行学习交流
+## 一、做了什么
 
-# 技术框架
-* 核心框架：SpringBoot 2.0.0
-* 持久层框架：Mybatis 1.3.2
-* 日志管理：SLF4J 1.7
-* 前端框架：Vue 2.7.16
-* UI框架: Ant-Design-Vue 1.5.2
-* 模板框架: Jeecg-Boot 2.2.0
-* 项目管理框架: Maven 3.3.9
+### 起因
 
-# 开发环境
-建议开发者使用以下环境，可以避免版本带来的问题
-* IDE: IntelliJ IDEA 2025.1.4.1
-* DB: Mysql 8.0.24
-* JDK: JDK 1.8
-* Node: Node 20.17.0
-* Maven: Maven 3.3.9
-* Redis: 6.2.1
-* Nginx: 1.12.2 
+对「保存销售出库单」接口做压测，50 并发、库存 10，结果：
 
-# 服务器环境
-* 数据库：Mysql8.0.24
-* JAVA平台：JRE1.8
-* Redis库：redis6.2.1
-* Nginx代理：nginx1.12.2
-* 操作系统：Windows、Linux等
+```
+成功 1 / 失败 49 / 耗时 0.6s / 库存 10 -> 8
+日志：48 次 MySQL Deadlock
+```
 
-# 配套资料
-* 需要用户手册请访问这里 https://www.gyjerp.com/doc/archive/user-manual.html
-* 需要接口文档请查看这里 https://www.gyjerp.com/doc/archive/apidoc.html
-* 喜欢视频教程可以看这里 https://space.bilibili.com/540003552/channel/series 
-* 为方便大家搭建运行环境，分享了下载地址 https://pan.baidu.com/s/1jlild9uyGdQ7H2yaMx76zw  提取码:814g
-* 不会打包的小伙伴，请下载此打包后的文件 https://share.weiyun.com/NDJNLhry 密码：vd3aig
-* 不会部署的小伙伴，请参考部署教程 https://www.gyjerp.com/doc/archive/deploy.html
-* 部署后登录系统的默认租户账号：jsh，默认超管账户：admin，默认密码均为：123456
+不是账错了，是**并发下单时 96% 的订单直接失败**。低频时完全正常，所以很难发现。
 
-# 开源说明
-* 本系统100%开源，遵守Apache-2.0协议，企业可以商用
-* 支持全球73种语言，在登录后右上角“界面设置”页面进行切换
+### 五处改造
 
-# 系统美图
-* 首页
-![输入图片说明](jshERP-web/public/static/screenshot/1.jpg)
-* 零售管理
-![输入图片说明](jshERP-web/public/static/screenshot/2.jpg)
-* 采购管理
-![输入图片说明](jshERP-web/public/static/screenshot/3.jpg)
-* 销售管理
-![输入图片说明](jshERP-web/public/static/screenshot/4.jpg)
-* 仓库管理
-![输入图片说明](jshERP-web/public/static/screenshot/5.jpg)
-* 财务管理
-![输入图片说明](jshERP-web/public/static/screenshot/6.jpg)
-* 报表查询
-![输入图片说明](jshERP-web/public/static/screenshot/7.jpg)
-* 商品管理
-![输入图片说明](jshERP-web/public/static/screenshot/8.jpg)
-* 基本资料
-![输入图片说明](jshERP-web/public/static/screenshot/9.jpg)
-* 系统管理
-![输入图片说明](jshERP-web/public/static/screenshot/10.jpg)
+| # | 问题 | 改造 |
+|---|---|---|
+| 1 | 库存校验是「先查后比较」，并发下存在 check-then-act 窗口 | 改为单条条件更新 `... AND current_number >= n`，影响行数为 0 即库存不足 |
+| 2 | 每保存一行明细都做一次全表聚合重算 + SELECT/UPDATE，写放大严重 | 改为增量扣减 / 累加，聚合逻辑从写路径移出 |
+| 3 | 先插明细再更新库存，两事务加锁顺序相反，形成 ABBA 死锁 | 出库单**先扣库存、再写明细**，统一锁顺序 |
+| 4 | RR 隔离级别下 UPDATE/INSERT 加间隙锁，高并发互相等待成环 | 事务隔离级别改为 `READ_COMMITTED` |
+| 5 | `LogService` 的防刷逻辑：同一用户同 IP 同一秒内第二次操作就删除会话强制下线，误伤正常并发 | 改为只跳过重复日志，不再动会话；重复提交交给按单号的 2 秒幂等 |
 
-# 如何支持
-* 开源不易，坚持更难！如果您觉得管伊佳ERP不错，不用请作者喝咖啡。
-* 您可以将我们的云平台地址：https://cloud.gyjerp.com 发给您的家人或朋友，只要是开店的、办厂的、做批发的都可以用得上。
-* 这将是对我们开源最大的支持！在此表示感谢！
+### 改造前后
+
+| 指标 | 改造前 | 改造后 |
+|---|---|---|
+| 50 并发成功数 | 1 | **9**（库存 9，卖光即止） |
+| 库存结果 | 10 → 8 | **10 → 0**（精确扣减，无负数） |
+| MySQL 死锁 | **48** | **0** |
+| 用户被强制下线 | 12 次 | **0** |
+| 空指针异常 | 36 次 | **0** |
+| 失败原因 | 系统错误 | 全部为业务拒绝（库存不足 / 重复提交） |
+
+### 改动文件
+
+```
+jshERP-boot/src/main/java/com/jsh/erp/service/DepotItemService.java          # 条件扣减、锁顺序
+jshERP-boot/src/main/java/com/jsh/erp/service/DepotHeadService.java          # 事务隔离级别
+jshERP-boot/src/main/java/com/jsh/erp/service/LogService.java                # 防刷误伤
+jshERP-boot/src/main/java/com/jsh/erp/service/RedisService.java              # 会话缺失诊断日志
+jshERP-boot/src/main/java/com/jsh/erp/datasource/mappers/DepotItemMapperEx.java
+jshERP-boot/src/main/resources/mapper_xml/DepotItemMapperEx.xml              # 条件更新 SQL
+jshERP-boot/src/main/resources/application.yml                               # Redis 连接池、相对路径
+```
+
+---
+
+## 二、技术栈
+
+- 后端：Spring Boot 2.0.0 / MyBatis-Plus 3.0.7 / MySQL 8 / Redis
+- 前端：Vue 2.7 + Ant Design Vue 1.5 + vue-cli 3（webpack 4）
+- JDK：**必须 1.8**（Spring Boot 2.0 依赖的 Spring 5.0 与 JDK 17+ 不兼容）
+
+---
+
+## 三、本地运行
+
+### 依赖
+
+| 组件 | 版本 | 说明 |
+|---|---|---|
+| JDK | 1.8 | 不能更高 |
+| MySQL | 8.0 | 导入 `jshERP-boot/docs/jsh_erp.sql` |
+| Redis | 5.x/6.x | 必须设置密码，配置里是 `1234abcd` |
+| Node | **16** | 前端 vue-cli 3 不兼容 Node 17+ |
+
+### 初始化数据库
+
+```bash
+mysql -uroot -p -e "CREATE DATABASE jsh_erp DEFAULT CHARSET utf8mb4;"
+# Windows 下用 cmd 重定向，PowerShell 管道会破坏中文编码
+cmd /c "mysql -uroot -p*** jsh_erp < jshERP-boot\docs\jsh_erp.sql"
+```
+
+首次安装只用 `jsh_erp.sql`，同目录下的「数据库更新记录」是升级脚本，不要导。
+
+### 启动
+
+```bash
+# 后端（端口 9999，上下文路径 /jshERP-boot）
+cd jshERP-boot
+mvn -DskipTests clean package
+java -jar target/jshERP.jar
+
+# 前端（端口 3000）
+cd jshERP-web
+npm install --legacy-peer-deps
+npm run serve
+```
+
+访问 `http://localhost:3000`，默认账号 **jsh / 123456**（租户管理员）。
+
+> 注意：不要用 `admin` 登录。该账号被后端硬编码排除在按钮权限之外，
+> 所有编辑弹窗会变成只读（见 `UserController#getUserBtnByCurrentUser`）。
+
+### 常见问题
+
+| 现象 | 原因 |
+|---|---|
+| 启动报 `Unable to create tempDir` | 系统临时目录不可写，启动时加 `-Djava.io.tmpdir=<可写目录>` |
+| 启动报 `Cannot create parent directory ... target` | 项目放在受保护目录（如 `Documents`），换到普通目录 |
+| `AccessDeniedException: ...\.m2\repository` | 安全软件拦截，用 `-Dmaven.repo.local=<可写目录>` |
+| 前端 `ERR_OSSL_EVP_UNSUPPORTED` | Node 版本过高，降到 16 |
+| 单据保存后库存不变 | `type` 字段中文被破坏（多半是客户端编码问题），检查是否落成 `??` |
+
+---
+
+## 四、压测
+
+脚本在 [tools/loadtest](tools/loadtest)，含参数说明和踩坑记录。
+
+```powershell
+# 单发验证
+powershell -ExecutionPolicy Bypass -File .\tools\loadtest\saleout-test.ps1 -Count 1
+# 50 并发
+powershell -ExecutionPolicy Bypass -File .\tools\loadtest\saleout-test.ps1 -Count 50
+```
+
+---
+
+## 五、已知问题
+
+- `admin` 账号拿不到按钮权限是硬编码实现的，更合理的做法是由角色配置决定。
+- `deleteObjectByUserAndIp` / `deleteObjectByUser` 内部使用 `keys(*)` 全库扫描，
+  会话多时是性能隐患，应改为按 userId 维护索引集合。
+- 库存的「余额表」与「流水表」目前靠应用层保证一致，缺少定期对账任务。
+  注意：不能简单按流水求和实现对账，还需把 `jsh_material_initial_stock`（期初库存）
+  和调拨/组装等单据类型一并纳入，否则会误报。
+- 库存重算逻辑仍在部分路径（调拨单）保留，未完全改为增量。
+
+---
+
+## 六、协议
+
+原项目为 Apache-2.0，本仓库的修改同样遵循该协议。
